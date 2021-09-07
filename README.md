@@ -1,22 +1,39 @@
-# lambda-circuitbreaker-node
+# airtable-sync
 
-## About
+This repository syncs [Prezly](https://www.prezly.com) contact data with an airtable base.
 
-This is a prototype implementation of the circuit breaker pattern in node/lambda. 
-The pattern can be used to limit the number of calls to a rate limited 3th party API.
+## Tech components
 
-## Inspiration
+* Node/Javascript
+* [Simple Notification Service](https://aws.amazon.com/sns/)
+* Prezly API
+* Airtable API
+* [Serverless](https://www.serverless.com/framework/docs/)
+* [Circuit Breaker Pattern](https://github.com/digitalbase/lambda-circuitbreaker-node)
+* [AirtablePlus SDK](https://airtable-plus.js.org/)
+* dotenv
 
-* https://www.jeremydaly.com/throttling-third-party-api-calls-with-aws-lambda/
-* https://www.jeremydaly.com/serverless-microservice-patterns-for-aws/#circuitbreaker
-* https://www.fernandomc.com/posts/eight-examples-of-fetching-data-from-dynamodb-with-node/
+##  How does it work ?
 
-## Parts of prototype:
+Four lambda functions:
 
-* mock AWS API Gateway with rate limits (see serverless.yml)
-* DynamoDB (one table/record) to keep circuitbreaker status (open/closed)
-* SQS queue to queue up the full workload
-* Fill queue function to fill the queue
-* Orchestrator that queues functions (calling the api)
-* CallAPI function that touches the API gateway
+* startsync: Listens to an endpoint (HTTP) and starts the sync
+* queue_jobs: Pages Prezly API and adds 1 message per contact to queue
+* orchestrator: Executes sync jobs while making sure we don't reach airtable rate limit (circuit breaker)
+* sync: Take the contact payload and create or update an airtable record
 
+## Installing
+
+Make sure to have serverless.yml and installed to use your AWS account. Read more in their [getting started guide](https://www.serverless.com/framework/docs/getting-started/) and how to [authorise AWS](https://www.serverless.com/framework/docs/providers/aws/guide/credentials/).
+
+```
+serverless config credentials --provider aws --key YOUR_KEY --secret YOUR_SECRET
+```
+
+Fill in .env.production with the variables  you need
+
+```
+cp .env.example.production .env.production
+npm install
+NODE_ENV=production sls deploy
+```

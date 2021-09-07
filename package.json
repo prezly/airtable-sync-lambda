@@ -1,5 +1,5 @@
 {
-  "name": "lambda-circuitbreaker-node",
+  "name": "airtable-sync-lambda",
   "version": "1.0.0",
   "description": "",
   "main": "handler.js",
@@ -10,20 +10,18 @@
   },
   "devDependencies": {
     "serverless": "^2.57.0",
-    "serverless-api-gateway-throttling": "^1.1.1",
-    "serverless-lift": "^1.6.0"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/digitalbase/lambda-circuitbreaker-node.git"
+    "url": "git+https://github.com/prezly/airtable-sync-lambda.git"
   },
   "author": "",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/digitalbase/lambda-circuitbreaker-node/issues"
+    "url": "https://github.com/prezly/airtable-sync-lambda/issues"
   },
-  "homepage": "https://github.com/digitalbase/lambda-circuitbreaker-node#readme"
+  "homepage": "https://github.com/prezly/airtable-sync-lambda#readme"
 }
