@@ -9,9 +9,6 @@ provider:
   runtime: nodejs14.x
   stage: ${env:SLS_STAGE}
   region: ${env:AMAZON_REGION}
-  apiGateway:
-    apiKeys:
-      - circuitbreaker
   lambdaHashingVersion: 20201221
   iam:
     role:
@@ -68,11 +65,14 @@ functions:
       QUEUE_URL: { Ref: SQSQueue }
       FUNCTION_TO_TRIGGER: { Fn::GetAtt: [ CallApiLambdaFunction, Arn ] }
 
-  fillqueue:
-    handler: src/handler/fillqueue.handler
-    description: Fills up the SQS queue with messages (to test). Configure nr messages in .env
+  queueJobs:
+    handler: src/handler/queue_jobs.handler
+    description: Fills up the SQS queue with one sync per job
     environment:
       QUEUE_URL: { Ref: SQSQueue }
+      PREZLY_API_HOST: ${env:PREZLY_API_HOST}
+      PREZLY_API_TOKEN: ${env:PREZLY_API_TOKEN}
+      PREZLY_PAGE_SIZE: ${env:PREZLY_PAGE_SIZE}
 
   callApi:
     handler: src/handler/callApi.handler
@@ -80,11 +80,12 @@ functions:
     environment:
       QUEUE_URL: { Ref: SQSQueue }
 
-  throttledGateway:
-    handler: src/handler/gateway.hello
-    description: Mock gateway with low rate limits, allowing us to test circuitbreaker
+  initialise:
+    handler: src/handler/initialise.handler
+    description: Start the sync job (first batch)
     events:
       - http:
-          path: /api
+          path: /trigger
           method: GET
-          private: true
+    environment:
+      FUNCTION_TO_TRIGGER: { Fn::GetAtt: [ QueueJobsLambdaFunction, Arn ] }

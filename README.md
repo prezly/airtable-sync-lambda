@@ -17,7 +17,7 @@ This repository syncs [Prezly](https://www.prezly.com) contact data with an airt
 
 Four lambda functions:
 
-* startsync: Listens to an endpoint (HTTP) and starts the sync
+* initialise: Listens to an endpoint (HTTP) and starts the sync
 * queue_jobs: Pages Prezly API and adds 1 message per contact to queue
 * orchestrator: Executes sync jobs while making sure we don't reach airtable rate limit (circuit breaker)
 * sync: Take the contact payload and create or update an airtable record
