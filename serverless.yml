@@ -7,6 +7,8 @@ plugins:
 provider:
   name: aws
   runtime: nodejs14.x
+  stage: ${env:SLS_STAGE}
+  region: ${env:AMAZON_REGION}
   apiGateway:
     apiKeys:
       - circuitbreaker
@@ -64,8 +66,6 @@ functions:
     memorySize: 256
     environment:
       QUEUE_URL: { Ref: SQSQueue }
-      ENDPOINT_TO_TEST: ${env:ENDPOINT_TO_TEST}
-      ENDPOINT_API_KEY: ${env:ENDPOINT_API_KEY}
       FUNCTION_TO_TRIGGER: { Fn::GetAtt: [ CallApiLambdaFunction, Arn ] }
 
   fillqueue:
@@ -73,15 +73,11 @@ functions:
     description: Fills up the SQS queue with messages (to test). Configure nr messages in .env
     environment:
       QUEUE_URL: { Ref: SQSQueue }
-      NUMBER_JOBS_TO_TEST: ${env:NUMBER_JOBS_TO_TEST}
-      ENDPOINT_TO_TEST: ${env:ENDPOINT_TO_TEST}
 
   callApi:
     handler: src/handler/callApi.handler
     description: Call the external api (with rate limits) and opens circuitbreaker if rate limited
     environment:
-      ENDPOINT_TO_TEST: ${env:ENDPOINT_TO_TEST}
-      ENDPOINT_API_KEY: ${env:ENDPOINT_API_KEY}
       QUEUE_URL: { Ref: SQSQueue }
 
   throttledGateway:
