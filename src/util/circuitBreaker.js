@@ -1,4 +1,4 @@
-const TABLE_NAME = 'circuit_breaker';
+const TABLE_NAME = process.env.TABLE_NAME;
 const STATUS_OPEN = 'opened';
 const STATUS_CLOSED = 'closed';
 

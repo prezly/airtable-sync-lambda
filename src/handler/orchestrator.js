@@ -17,7 +17,7 @@ exports.handler = async (event, context) => {
 
     let messagesToProcessPerInvoke = 100;
     let messagesProcessed = 0;
-    let coolDownPeriodInMs = 1000;
+    let coolDownPeriodInMs = 100;
 
     // loop forever, or maybe invoke itself after a while. Might be better than while true
     while (messagesProcessed < messagesToProcessPerInvoke) {
@@ -25,21 +25,31 @@ exports.handler = async (event, context) => {
         console.log(`On the ${messagesProcessed} message the circuit is marked as ${circuitBreakerClient.status}`)
 
         if (circuitBreakerClient.isOpen()) {
+            console.log(`Delaying for ${coolDownPeriodInMs}ms to see if airtable API is still rate limited`);
             await sleep(coolDownPeriodInMs);
 
+            const statusUrl = `${process.env.AIRTABLE_API_HOST}${process.env.AIRTABLE_BASE}/${process.env.AIRTABLE_TABLE}?api_key=${process.env.AIRTABLE_API_KEY}`;
+
             // launch some kind of test API that can close it
-            const headers = {
-                'x-api-key': process.env.ENDPOINT_API_KEY,
-            }
-            console.log(`Checking with delay of ${coolDownPeriodInMs}ms if API is still rate limited`);
-            const response = await fetch(process.env.ENDPOINT_TO_TEST, { method: 'GET', headers: headers});
+            const response = await fetch(statusUrl, { method: 'GET'});
             const statusCode = response.status;
 
             if (statusCode === 200) {
                 console.log('status call ok. Closing circuit');
                 await circuitBreakerClient.close();
-                coolDownPeriodInMs = 1000;
+                coolDownPeriodInMs = 100;
             } else {
+                console.log(`status call not ok. Status code is ${response.status}`);
+
+                if (coolDownPeriodInMs > 30000) {
+                    await lambda.invoke({
+                        InvocationType: 'Event',
+                        FunctionName: context.functionName,
+                    }).promise();
+
+                    return { message: `Stopped orchestrator and retriggered itself. Processed ${messagesProcessed} messages`, event };
+                }
+
                 coolDownPeriodInMs = coolDownPeriodInMs*2;
             }
         }
@@ -82,6 +92,8 @@ exports.handler = async (event, context) => {
 
     return { message: `Stopped orchestrator and retriggered itself. Processed ${messagesProcessed} messages`, event };
 };
+
+
 
 function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));

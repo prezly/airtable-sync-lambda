@@ -10,28 +10,29 @@ const PAGE_SIZE = process.env.PREZLY_PAGE_SIZE;
 
 exports.handler = async (event, context) => {
     let messagesAdded = 0;
-    let offset = event.offset ?? 0;
+    let page = event.page ?? 0;
 
-    log(`Getting contacts from API (in blocks of ${PAGE_SIZE})`);
+    log(`Getting contacts from API (in blocks of ${PAGE_SIZE}). Page ${page}`);
 
-    const { pagination, contacts } = await reqUsers(offset, PAGE_SIZE);
+    const { pagination, contacts } = await reqUsers(page, PAGE_SIZE);
     const { total_records_number} = pagination;
-    const chunksCount = Math.round(total_records_number / PAGE_SIZE);
+    const totalPages = Math.round(total_records_number / PAGE_SIZE);
 
     const sqsPromises = [];
     contacts.forEach((contact) => {
+        console.log(contact.id);
         sqsPromises.push(addToSqs(contact));
     });
 
     console.log(`Waiting for all promises`);
     await Promise.all(sqsPromises);
 
-    console.log(`Offset ${offset} < Chunks ${chunksCount}`);
-    if (offset <= chunksCount) {
+    console.log(`Page ${page} < Pages ${totalPages}`);
+    if (page <= totalPages) {
         await lambda.invoke({
             InvocationType: 'Event',
             FunctionName: context.functionName,
-            Payload: JSON.stringify({ offset: offset+1 }, null, 2)
+            Payload: JSON.stringify({ page: page+1 }, null, 2)
         }).promise();
 
         return { message: `Added jobs and queued myself. Added ${messagesAdded} contacts to queue`, event };
@@ -50,7 +51,7 @@ const addToSqs = async (contact) => {
     return sqs.sendMessage(params).promise();
 }
 
-const reqUsers = (offset, pageSize = PAGE_SIZE) => {
+const reqUsers = (page, pageSize = PAGE_SIZE) => {
 
     const userReq = {
         uri: API_ENDPOINT ,
@@ -58,7 +59,7 @@ const reqUsers = (offset, pageSize = PAGE_SIZE) => {
         qs: {
             limit: pageSize,
             sort: '-created_at',
-            offset: offset
+            page: page
         },
         json: true,
         headers: {
