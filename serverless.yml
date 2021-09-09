@@ -38,8 +38,7 @@ resources:
     SQSQueue:
       Type: AWS::SQS::Queue
       Properties:
-        QueueName: CircuitBreakerQueue
-
+        QueueName: ${env:QUEUE_NAME}
     circuitBreakerStatusTable:
       Type: AWS::DynamoDB::Table
       Properties:
@@ -50,9 +49,7 @@ resources:
         KeySchema:
           - AttributeName: key
             KeyType: HASH
-        ProvisionedThroughput:
-          ReadCapacityUnits: 1
-          WriteCapacityUnits: 1
+        BillingMode: PAY_PER_REQUEST
 
 functions:
   orchestrator:
@@ -63,7 +60,12 @@ functions:
     memorySize: 256
     environment:
       QUEUE_URL: { Ref: SQSQueue }
+      TABLE_NAME: ${env:TABLE_NAME}
       FUNCTION_TO_TRIGGER: { Fn::GetAtt: [ CallApiLambdaFunction, Arn ] }
+      AIRTABLE_API_HOST: ${env:AIRTABLE_API_HOST}
+      AIRTABLE_API_KEY: ${env:AIRTABLE_API_KEY}
+      AIRTABLE_BASE: ${env:AIRTABLE_BASE}
+      AIRTABLE_TABLE: ${env:AIRTABLE_TABLE}
 
   queueJobs:
     handler: src/handler/queue_jobs.handler
@@ -77,8 +79,15 @@ functions:
   callApi:
     handler: src/handler/callApi.handler
     description: Call the external api (with rate limits) and opens circuitbreaker if rate limited
+    timeout: 45
+    reservedConcurrency: 4 # make sure it never runs more than 5 at once
     environment:
       QUEUE_URL: { Ref: SQSQueue }
+      TABLE_NAME: ${env:TABLE_NAME}
+      AIRTABLE_API_HOST: ${env:AIRTABLE_API_HOST}
+      AIRTABLE_API_KEY: ${env:AIRTABLE_API_KEY}
+      AIRTABLE_BASE: ${env:AIRTABLE_BASE}
+      AIRTABLE_TABLE: ${env:AIRTABLE_TABLE}
 
   initialise:
     handler: src/handler/initialise.handler
